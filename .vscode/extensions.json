@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "dreamcatcher45.podmanager",
+        "ms-azuretools.vscode-docker",
+        "ms-vscode-remote.remote-containers",
+        "formulahendry.docker-extension-pack",
+        "ms-vscode.remote-explorer"
+    ]
+}

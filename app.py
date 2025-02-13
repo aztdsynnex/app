@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate 
+from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -12,6 +12,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'your_secret_key'  # Ensure you set a secret key for session management
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -56,6 +57,4 @@ def welcome(username):
     return render_template('welcome.html', username=username)
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()  # Ensure the database tables are created
     app.run(debug=True, host='0.0.0.0', port=8080)

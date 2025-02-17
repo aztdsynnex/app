@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: hslu-app-hybrid
+spec:
+  replicas: 2  # Ensure two replicas
+  selector:
+    matchLabels:
+      app: postgres
+  serviceName: "postgres"
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      securityContext:
+        runAsUser: 1001060001  # Updated UID to match SCC range
+        fsGroup: 1001060000    # Updated group to match SCC range
+      initContainers:
+      - name: clear-data
+        image: busybox
+        command: ['sh', '-c', 'rm -rf /var/lib/postgresql/data/*']
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1001060001  # Updated UID
+        resources:  # ✅ Added CPU & Memory Requests/Limits
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+      - name: init-permissions
+        image: busybox
+        command:
+          - sh
+          - -c
+          - |
+            mkdir -p /var/lib/postgresql/data/db && \
+            chown -R 1001060001:1001060000 /var/lib/postgresql/data/db
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1001060001  # Updated UID
+        resources:  # ✅ Added CPU & Memory Requests/Limits
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-storage
+      containers:
+      - name: postgres
+        image: postgres:latest
+        ports:
+          - containerPort: 5432
+        env:
+          - name: POSTGRES_DB
+            value: hsludatabase
+          - name: POSTGRES_USER
+            value: root
+          - name: POSTGRES_PASSWORD
+            value: rotkreuz
+          - name: PGDATA
+            value: /var/lib/postgresql/data/db
+        securityContext:
+          runAsUser: 1001060001  # Updated UID
+        resources:  # ✅ Added CPU & Memory Requests/Limits
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+        volumeMounts:
+          - mountPath: /var/lib/postgresql/data
+            name: postgres-storage
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 5Gi

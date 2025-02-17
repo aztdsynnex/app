@@ -8,7 +8,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your_secret_key')
 
 # PostgreSQL Database Configuration using environment variables
-db_uri = os.environ.get('DATABASE_URL', 'postgresql://root:rotkreuz@postgres.hslu-app-hybrid.svc.clusterset.local:5432/hsludatabase'
+db_uri = os.environ.get('DATABASE_URL', 'postgresql://root:rotkreuz@postgres.hslu-app-hybrid.svc.clusterset.local:5432/hsludatabase')
 app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -58,7 +58,7 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST'):
+    if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
 

@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: hslu-app-hybrid 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      securityContext:
+        runAsUser: 1001180000
+        fsGroup: 1001180000
+      initContainers:
+      - name: clear-data
+        image: busybox
+        command: ['sh', '-c', 'rm -rf /var/lib/postgresql/data/*']
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1001180000  # Non-root user within the allowed range
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
+          requests:
+            cpu: "50m"
+            memory: "32Mi"
+      - name: init-permissions
+        image: busybox
+        command:
+          - sh
+          - -c
+          - |
+            mkdir -p /var/lib/postgresql/data/db && \
+            chown -R 1001180000:1001180000 /var/lib/postgresql/data/db
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 1001180000  # Non-root user within the allowed range
+          seccompProfile:
+            type: RuntimeDefault
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: postgres-storage
+        resources:
+          limits:
+            cpu: "100m"
+            memory: "64Mi"
+          requests:
+            cpu: "50m"
+            memory: "32Mi"
+      containers:
+      - name: postgres
+        image: postgres:latest
+        ports:
+          - containerPort: 5432
+        env:
+          - name: POSTGRES_DB
+            value: mydatabase
+          - name: POSTGRES_USER
+            value: myuser
+          - name: POSTGRES_PASSWORD
+            value: mypassword
+          - name: PGDATA
+            value: /var/lib/postgresql/data/db
+        volumeMounts:
+          - mountPath: /var/lib/postgresql/data
+            name: postgres-storage
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+          requests:
+            cpu: "250m"
+            memory: "128Mi"
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
